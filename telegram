@@ -3,7 +3,7 @@
 VERSION="0.1"
 TOKEN=""
 CHATS=()
-DEBUG=true
+DEBUG=false
 
 IMAGE_FILE=""
 DOCUMENT_FILE=""
@@ -31,6 +31,10 @@ function help {
 	echo "    -H               Enables HTML processing at telegram."
 	echo "    -C               Sends text as monospace code. Useful when piping command outputs into this tool."
 	echo "    -l               Fetch known chat_ids."
+	echo
+	echo "DEBUGGING OPTIONS are:"
+	echo "    -v               Display lots of more or less useful information."
+	echo "    -j               Pretend you don't have JQ installed."
 	echo
 	echo "Message can be '-', in that case STDIN will be used."
 	echo
@@ -85,7 +89,7 @@ function log {
 	[ "$DEBUG" = true ] && echo "DEBUG: $1"
 }
 
-while getopts "t:c:i:f:MHChl" opt; do
+while getopts "t:c:i:f:MHChlvj" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -111,6 +115,12 @@ while getopts "t:c:i:f:MHChl" opt; do
 			;;
 		l)
 			ACTION="list_chats"
+			;;
+		v)
+			DEBUG=true
+			;;
+		j)
+			HAS_JQ=false
 			;;
 		?|h)
 			help
