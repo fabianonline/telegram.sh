@@ -3,7 +3,7 @@
 VERSION="0.1"
 TOKEN=""
 CHATS=()
-DEBUG=0
+DEBUG=true
 
 IMAGE_FILE=""
 DOCUMENT_FILE=""
@@ -13,6 +13,9 @@ ACTION=""
 
 URL="https://api.telegram.org/bot"
 CURL_OPTIONS="-s"
+
+HAS_JQ=false
+hash jq >/dev/null 2>&1 && HAS_JQ=true
       
 
 function help {
@@ -53,10 +56,11 @@ function list_chats {
 	response=`curl $CURL_OPTIONS $URL$TOKEN/getUpdates`
 	log "$response"
 	
-	hash jq >/dev/null 2>&1
-	local code=$?
-	
-	if [ $code -eq 0 ]; then
+	if [ "$HAS_JQ" = true ]; then
+		echo "These are the available chats that I can find right now. The ID is the number at the front."
+		echo "If there are no chats or the chat you are looking for isn't there, run this command again"
+		echo "after sending a message to your bot via telegram."
+		echo
 		jq -r '.result | .[].message.chat | "\(.id|tostring) - \(.first_name) \(.last_name) (@\(.username))"' 2>/dev/null <<< "$response" || {
 			echo "Could not parse reponse from Telegram."
 			echo "Response was: $response"
@@ -64,15 +68,21 @@ function list_chats {
 		}
 	else
 		echo "You don't have jq installed. I'm afraid I can't parse the JSON from telegram without it."
+		echo "So I'll have you do it. ;-)"
+		echo
 		echo "Please look for your chat_id in this output by yourself."
-		echo 'Look for something like "chat":{"id":<CHAT_ID> and verify that the names match.'
+		echo 'Look for something like "chat":{"id":<CHAT_ID> and verify that first_name, last_name and'
+		echo "username match your expected chat."
+		echo
+		echo "If there are no chats listed or the chat you are looking for isn't there, try again after"
+		echo "sending a message to your bot via telegram."
 		echo
 		echo $response
 	fi
 }
 
 function log {
-	[ $DEBUG -eq 1 ] && echo $1
+	[ "$DEBUG" = true ] && echo "DEBUG: $1"
 }
 
 while getopts "t:c:i:f:MHChl" opt; do
@@ -172,21 +182,12 @@ if [ $CODE_MODE -eq 1 ]; then
 	TEXT='```'$'\n'$TEXT$'\n''```'
 fi
 
-#TEXT=`printf "%q" $TEXT`
-
 log "Text: $TEXT"
 
 if [ -z "$TEXT" ] && [ -z "$DOCUMENT_FILE" ] && [ -z "$IMAGE_FILE" ]; then
 	echo "Neither text nor image or other file given."
 	exit 1
 fi
-
-### Send message
-# -i: Send an image
-# -f: Send a file
-# -M: Use markdown
-# -H: Use HTML
-# "Message" either as last parameter or piped into this script
 
 if [ -n "$DOCUMENT_FILE" ] && [ -n "$IMAGE_FILE" ]; then
 	echo "You can't send a file AND an image at the same time."
@@ -209,6 +210,7 @@ fi
 
 for id in "${CHATS[@]}"; do
 	response=`curl $CURL_OPTIONS --form-string chat_id=$id $URL$TOKEN/$METHOD <<< "$TEXT"`
+	log "Response was: $response"
 	status=$?
 	if [ $status -ne 0 ]; then
 		echo "curl reported an error. Exit code was: $status."
@@ -216,10 +218,20 @@ for id in "${CHATS[@]}"; do
 		echo "Quitting."
 		exit $status
 	fi
-	if [[ "$response" != '{"ok":true'* ]]; then
-		echo "Telegram reported an error:"
-		echo $response
-		echo "Quitting."
-		exit 1
+
+	if [ "$HAS_JQ" = true ]; then
+		if [ `jq -r '.ok' <<< "$response"` != "true" ]; then
+			echo "Telegram reported following error:"
+			jq -r '"\(.error_code): \(.description)"' <<< "$response"
+			echo "Quitting."
+			exit 1
+		fi
+	else
+		if [[ "$response" != '{"ok":true'* ]]; then
+			echo "Telegram reported an error:"
+			echo $response
+			echo "Quitting."
+			exit 1
+		fi
 	fi
 done
