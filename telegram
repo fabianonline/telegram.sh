@@ -220,8 +220,8 @@ fi
 
 for id in "${CHATS[@]}"; do
 	response=`curl $CURL_OPTIONS --form-string chat_id=$id $URL$TOKEN/$METHOD <<< "$TEXT"`
-	log "Response was: $response"
 	status=$?
+	log "Response was: $response"
 	if [ $status -ne 0 ]; then
 		echo "curl reported an error. Exit code was: $status."
 		echo "Response was: $response"
