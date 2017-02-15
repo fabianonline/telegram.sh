@@ -230,7 +230,7 @@ for id in "${CHATS[@]}"; do
 	fi
 
 	if [ "$HAS_JQ" = true ]; then
-		if [ `jq -r '.ok' <<< "$response"` != "true" ]; then
+		if [ "`jq -r '.ok' <<< "$response"`" != "true" ]; then
 			echo "Telegram reported following error:"
 			jq -r '"\(.error_code): \(.description)"' <<< "$response"
 			echo "Quitting."
