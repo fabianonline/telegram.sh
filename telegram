@@ -4,11 +4,13 @@ VERSION="0.1"
 TOKEN=""
 CHATS=()
 DEBUG=false
+DRY_RUN=false
 
 IMAGE_FILE=""
 DOCUMENT_FILE=""
 PARSE_MODE=""
 CODE_MODE=0
+CRON_MODE=0
 ACTION=""
 
 URL="https://api.telegram.org/bot"
@@ -30,11 +32,13 @@ function help {
 	echo "    -M               Enables Markdown processing at telegram."
 	echo "    -H               Enables HTML processing at telegram."
 	echo "    -C               Sends text as monospace code. Useful when piping command outputs into this tool."
+	echo "    -r               Like -C, but if the first line starts with '+ ', it is specially formatted."
 	echo "    -l               Fetch known chat_ids."
 	echo
 	echo "DEBUGGING OPTIONS are:"
 	echo "    -v               Display lots of more or less useful information."
 	echo "    -j               Pretend you don't have JQ installed."
+	echo "    -n               Dry-run - don't send messages, only print them on screen."
 	echo
 	echo "Message can be '-', in that case STDIN will be used."
 	echo
@@ -89,7 +93,7 @@ function log {
 	[ "$DEBUG" = true ] && echo "DEBUG: $1"
 }
 
-while getopts "t:c:i:f:MHChlvj" opt; do
+while getopts "t:c:i:f:MHCrhlvjn" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -113,6 +117,11 @@ while getopts "t:c:i:f:MHChlvj" opt; do
 			PARSE_MODE="Markdown"
 			CODE_MODE=1
 			;;
+		r)
+			PARSE_MODE="Markdown"
+			CODE_MODE=1
+			CRON_MODE=1
+			;;
 		l)
 			ACTION="list_chats"
 			;;
@@ -121,6 +130,9 @@ while getopts "t:c:i:f:MHChlvj" opt; do
 			;;
 		j)
 			HAS_JQ=false
+			;;
+		n)
+			DRY_RUN=true
 			;;
 		?|h)
 			help
@@ -189,7 +201,14 @@ log "Text: $TEXT"
 log "Text: $TEXT"
 
 if [ $CODE_MODE -eq 1 ]; then
-	TEXT='```'$'\n'$TEXT$'\n''```'
+	TEXT_NEW=""
+	if [ $CRON_MODE -eq 1 ] && [ "${TEXT:0:2}" = "+ " ]; then
+		HEADER=`head -n 1 <<< "$TEXT"`
+		TEXT_NEW="*${HEADER:2}*"$'\n'
+		TEXT=`tail -n +2 <<< "$TEXT"`
+	fi
+	TEXT_NEW="$TEXT_NEW"'```'$'\n'$TEXT$'\n''```'
+	TEXT="$TEXT_NEW"
 fi
 
 log "Text: $TEXT"
@@ -219,8 +238,17 @@ else
 fi
 
 for id in "${CHATS[@]}"; do
-	response=`curl $CURL_OPTIONS --form-string chat_id=$id $URL$TOKEN/$METHOD <<< "$TEXT"`
-	status=$?
+	CURL_OPTIONS="$CURL_OPTIONS --form-string chat_id=$id $URL$TOKEN/$METHOD"
+	if [ "$DRY_RUN" = true ]; then
+		echo "Executing: curl $CURL_OPTIONS"
+		echo "     Text: $TEXT"
+		echo
+		status=0
+		response='{"ok": true}'
+	else
+		response=`curl $CURL_OPTIONS <<< "$TEXT"`
+		status=$?
+	fi
 	log "Response was: $response"
 	if [ $status -ne 0 ]; then
 		echo "curl reported an error. Exit code was: $status."
