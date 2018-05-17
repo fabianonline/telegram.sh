@@ -269,26 +269,39 @@ if [ $CODE_MODE -eq 1 ]; then
 fi
 
 if [ $CRON_MODE -eq 1 ]; then
-	FIRST_LINE=1
-	BLOCK_OPEN=0
-	NEW_TEXT=""
+	ONLY_COMMANDS=1
 	while read line; do
 		if [ "${line:0:2}" = "+ " ]; then
-			if [ "$BLOCK_OPEN" -eq 1 ]; then
-				NEW_TEXT="$NEW_TEXT"'```'$'\n'
-				BLOCK_OPEN=0
-			fi
-			NEW_TEXT="$NEW_TEXT*`escapeMarkdown "${line:2}"`*"$'\n'
-		else
-			if [ "$BLOCK_OPEN" -eq 0 ]; then
-				NEW_TEXT="$NEW_TEXT"'```'$'\n'
-				BLOCK_OPEN=1
-			fi
-			NEW_TEXT="$NEW_TEXT$line"$'\n'
+			ONLY_COMMANDS=0
 		fi
 	done <<< "$TEXT"
-	[ "$BLOCK_OPEN" -eq 1 ] && NEW_TEXT="$NEW_TEXT"'```'
-	TEXT="$NEW_TEXT"
+	
+	if [ "$ONLY_COMMANDS" -eq 1 ]; then
+		exit 0
+	fi
+	
+	TEXT='```'$'\n'$TEXT$'\n''```'
+	
+	#FIRST_LINE=1
+	#BLOCK_OPEN=0
+	#NEW_TEXT=""
+	#while read line; do
+	#	if [ "${line:0:2}" = "+ " ]; then
+	#		if [ "$BLOCK_OPEN" -eq 1 ]; then
+	#			NEW_TEXT="$NEW_TEXT"'```'$'\n'
+	#			BLOCK_OPEN=0
+	#		fi
+	#		NEW_TEXT="$NEW_TEXT*`escapeMarkdown "${line:2}"`*"$'\n'
+	#	else
+	#		if [ "$BLOCK_OPEN" -eq 0 ]; then
+	#			NEW_TEXT="$NEW_TEXT"'```'$'\n'
+	#			BLOCK_OPEN=1
+	#		fi
+	#		NEW_TEXT="$NEW_TEXT$line"$'\n'
+	#	fi
+	#done <<< "$TEXT"
+	#[ "$BLOCK_OPEN" -eq 1 ] && NEW_TEXT="$NEW_TEXT"'```'
+	#TEXT="$NEW_TEXT"
 fi
 
 log "Text: $TEXT"
