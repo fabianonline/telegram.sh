@@ -4,14 +4,17 @@ VERSION="0.1"
 TOKEN=""
 CHATS=()
 DEBUG=false
+DRY_RUN=false
 
 IMAGE_FILE=""
 DOCUMENT_FILE=""
 PARSE_MODE=""
 CODE_MODE=0
+CRON_MODE=0
 ACTION=""
 
 URL="https://api.telegram.org/bot"
+FILE_URL="https://api.telegram.org/file/bot"
 CURL_OPTIONS="-s"
 
 HAS_JQ=false
@@ -30,11 +33,14 @@ function help {
 	echo "    -M               Enables Markdown processing at telegram."
 	echo "    -H               Enables HTML processing at telegram."
 	echo "    -C               Sends text as monospace code. Useful when piping command outputs into this tool."
+	echo "    -r               Like -C, but if the first line starts with '+ ', it is specially formatted."
 	echo "    -l               Fetch known chat_ids."
+	echo "    -R               Receive a file sent via telegram."
 	echo
 	echo "DEBUGGING OPTIONS are:"
 	echo "    -v               Display lots of more or less useful information."
 	echo "    -j               Pretend you don't have JQ installed."
+	echo "    -n               Dry-run - don't send messages, only print them on screen."
 	echo
 	echo "Message can be '-', in that case STDIN will be used."
 	echo
@@ -85,11 +91,63 @@ function list_chats {
 	fi
 }
 
+function receive_file {
+	if [ "$HAS_JQ" = false ]; then
+		echo "You need to have jq installed in order to be able to download files."
+		exit 1
+	fi
+	
+	result=`curl $CURL_OPTIONS $URL$TOKEN/getUpdates?allowed_updates=message`
+	log "$result"
+	# {"ok":true,"result":[
+	#   {
+	#     "update_id":441727866,
+	#     "message":{
+	#       "message_id":8339,
+	#       "from":{"id":15773,"is_bot":false,"first_name":"Fabian","last_name":"Schlenz","username":"fabianonline","language_code":"de"},
+	#       "chat":{"id":15773,"first_name":"Fabian","last_name":"Schlenz","username":"fabianonline","type":"private"},
+	#       "date":1526564127,
+	#       "document":{"file_name":"desktop.ini","file_id":"BQAav-HkXugI","file_size":282}}}]}
+	file_id=`jq -r '.result[-1].message.document.file_id' <<< "$result"`
+	log "file_id: $file_id"
+	if [ "$file_id" == "null" ]; then
+		echo "Last message received apparently didn't contain a file. Aborting."
+		exit 1
+	fi
+	file_name=`jq -r '.result[-1].message.document.file_name' <<< "$result"`
+	log "file_name: $file_name"
+	result=`curl $CURL_OPTIONS $URL$TOKEN/getFile?file_id=$file_id`
+	log $result
+	# {"ok":true,"result":{"file_id":"BQAav-HkXugI","file_size":282,"file_path":"documents/file_271.ini"}}
+	path=`jq -r '.result.file_path' <<< "$result"`
+	log "path: $path"
+	if [ "$path" == "null" ]; then
+		echo "Could not parse telegram's response to getFile. Aborting."
+		exit 1
+	fi
+	file_name="`date +%s`_$file_name"
+	log "file_name: $file_name"
+	if [ -e "$file_name" ]; then
+		echo "File $file_name already exists. This is unexpected, so I'm quitting now."
+		exit 1
+	fi
+	curl $FILE_URL$TOKEN/$path --output "$file_name"
+	echo "File downloaded as $file_name"
+}
+
 function log {
 	[ "$DEBUG" = true ] && echo "DEBUG: $1"
 }
 
-while getopts "t:c:i:f:MHChlvj" opt; do
+function escapeMarkdown {
+	res="${1//\*/∗}"
+	res="${res//_/＿}"
+	res="${res//\`/‵}"
+	#res="${res//\//∕}"
+	echo "$res"
+}
+
+while getopts "t:c:i:f:MHCrhlvjnR" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -113,6 +171,10 @@ while getopts "t:c:i:f:MHChlvj" opt; do
 			PARSE_MODE="Markdown"
 			CODE_MODE=1
 			;;
+		r)
+			PARSE_MODE="Markdown"
+			CRON_MODE=1
+			;;
 		l)
 			ACTION="list_chats"
 			;;
@@ -121,6 +183,12 @@ while getopts "t:c:i:f:MHChlvj" opt; do
 			;;
 		j)
 			HAS_JQ=false
+			;;
+		n)
+			DRY_RUN=true
+			;;
+		R)
+			ACTION="receive_file"
 			;;
 		?|h)
 			help
@@ -136,7 +204,10 @@ while getopts "t:c:i:f:MHChlvj" opt; do
 	esac
 done
 
-
+if [ "$CRON_MODE" -eq 1 ] && [ "$CODE_MODE" -eq 1 ]; then
+	echo "You can either use -C or -r, but not both."
+	exit 1
+fi
 
 log "TOKEN is now $TOKEN"
 log "CHATS is now ${CHATS[*]}"
@@ -180,6 +251,11 @@ if [ "$ACTION" = "list_chats" ]; then
 	exit 0
 fi
 
+if [ "$ACTION" = "receive_file" ]; then
+	receive_file
+	exit 0
+fi
+
 shift $((OPTIND - 1))
 TEXT="$1"
 log "Text: $TEXT"
@@ -190,6 +266,42 @@ log "Text: $TEXT"
 
 if [ $CODE_MODE -eq 1 ]; then
 	TEXT='```'$'\n'$TEXT$'\n''```'
+fi
+
+if [ $CRON_MODE -eq 1 ]; then
+	ONLY_COMMANDS=1
+	while read line; do
+		if [ "${line:0:2}" = "+ " ]; then
+			ONLY_COMMANDS=0
+		fi
+	done <<< "$TEXT"
+	
+	if [ "$ONLY_COMMANDS" -eq 1 ]; then
+		exit 0
+	fi
+	
+	TEXT='```'$'\n'$TEXT$'\n''```'
+	
+	#FIRST_LINE=1
+	#BLOCK_OPEN=0
+	#NEW_TEXT=""
+	#while read line; do
+	#	if [ "${line:0:2}" = "+ " ]; then
+	#		if [ "$BLOCK_OPEN" -eq 1 ]; then
+	#			NEW_TEXT="$NEW_TEXT"'```'$'\n'
+	#			BLOCK_OPEN=0
+	#		fi
+	#		NEW_TEXT="$NEW_TEXT*`escapeMarkdown "${line:2}"`*"$'\n'
+	#	else
+	#		if [ "$BLOCK_OPEN" -eq 0 ]; then
+	#			NEW_TEXT="$NEW_TEXT"'```'$'\n'
+	#			BLOCK_OPEN=1
+	#		fi
+	#		NEW_TEXT="$NEW_TEXT$line"$'\n'
+	#	fi
+	#done <<< "$TEXT"
+	#[ "$BLOCK_OPEN" -eq 1 ] && NEW_TEXT="$NEW_TEXT"'```'
+	#TEXT="$NEW_TEXT"
 fi
 
 log "Text: $TEXT"
@@ -219,8 +331,17 @@ else
 fi
 
 for id in "${CHATS[@]}"; do
-	response=`curl $CURL_OPTIONS --form-string chat_id=$id $URL$TOKEN/$METHOD <<< "$TEXT"`
-	status=$?
+	CURL_OPTIONS="$CURL_OPTIONS --form-string chat_id=$id $URL$TOKEN/$METHOD"
+	if [ "$DRY_RUN" = true ]; then
+		echo "Executing: curl $CURL_OPTIONS"
+		echo "     Text: $TEXT"
+		echo
+		status=0
+		response='{"ok": true}'
+	else
+		response=`curl $CURL_OPTIONS <<< "$TEXT"`
+		status=$?
+	fi
 	log "Response was: $response"
 	if [ $status -ne 0 ]; then
 		echo "curl reported an error. Exit code was: $status."
