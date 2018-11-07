@@ -139,6 +139,19 @@ function log {
 	[ "$DEBUG" = true ] && echo "DEBUG: $1"
 }
 
+function check_file {
+	if [ ! -e "$1" ]; then
+		echo "The file $1 does not exist."
+		exit 1
+	fi
+	
+	size=$(stat -c%s "$1")
+	if (( size > 52428800 )); then
+		echo "File $1 is breaking the file size limit imposed on Telegram bots (currently 50MB)."
+		exit 1
+	fi
+}
+
 function escapeMarkdown {
 	res="${1//\*/∗}"
 	res="${res//_/＿}"
@@ -317,10 +330,13 @@ if [ -n "$DOCUMENT_FILE" ] && [ -n "$IMAGE_FILE" ]; then
 fi
 
 if [ -n "$DOCUMENT_FILE" ]; then
+	check_file "$DOCUMENT_FILE"
+	
 	CURL_OPTIONS="$CURL_OPTIONS --form document=@$DOCUMENT_FILE"
 	CURL_OPTIONS="$CURL_OPTIONS --form caption=<-"
 	METHOD="sendDocument"
 elif [ -n "$IMAGE_FILE" ]; then
+	check_file "$IMAGE_FILE"
 	CURL_OPTIONS="$CURL_OPTIONS --form photo=@$IMAGE_FILE"
 	CURL_OPTIONS="$CURL_OPTIONS --form caption=<-"
 	METHOD="sendPhoto"
