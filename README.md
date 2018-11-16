@@ -24,6 +24,8 @@ telegram "Hello, World."
 
 # Split them into multiple lines
 telegram "Hello,"$'\n'"World."
+# or
+echo -e "Hello\nWorld." | telegram -
 
 # Or you send this one message to another chat:
 telegram -c 6789 "Hello, Mars."
