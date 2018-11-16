@@ -359,15 +359,15 @@ fi
 [ "$DISABLE_NOTIFICATION" = true ] && CURL_OPTIONS="$CURL_OPTIONS --form-string disable_notification=true"
 
 for id in "${CHATS[@]}"; do
-	CURL_OPTIONS="$CURL_OPTIONS --form-string chat_id=$id $URL$TOKEN/$METHOD"
+	MY_CURL_OPTIONS="$CURL_OPTIONS --form-string chat_id=$id $URL$TOKEN/$METHOD"
 	if [ "$DRY_RUN" = true ]; then
-		echo "Executing: curl $CURL_OPTIONS"
+		echo "Executing: curl $MY_CURL_OPTIONS"
 		echo "     Text: $TEXT"
 		echo
 		status=0
 		response='{"ok": true}'
 	else
-		response=`curl $CURL_OPTIONS <<< "$TEXT"`
+		response=`curl $MY_CURL_OPTIONS <<< "$TEXT"`
 		status=$?
 	fi
 	log "Response was: $response"
