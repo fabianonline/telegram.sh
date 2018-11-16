@@ -40,6 +40,7 @@ function help {
 	echo "    -R               Receive a file sent via telegram."
 	echo "    -D               Sets disable_web_page_preview parameter to, well, disable the preview for links to webpages."
 	echo "                     Can also be set in config as TELEGRAM_DISABLE_WEB_PAGE_PREVIEW=true (see ENVIRONMENT)"
+	echo "                     This feature is only supported for text messages, not when sending files or images (-f, -i)."
 	echo "    -N               Diables notifications on clients. Users will receive a notification with no sound."
 	echo "                     Can also be set in config as TELEGRAM_DISABLE_NOTIFICATION=true (see ENVIRONMENT)"
 	echo
