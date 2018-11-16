@@ -22,6 +22,9 @@ telegram -t 123456:AbcDefGhi-JklMnoPrw -c 12345 "Hello, World."
 # Then you can just use
 telegram "Hello, World."
 
+# Split them into multiple lines
+telegram "Hello,"$'\n'"World."
+
 # Or you send this one message to another chat:
 telegram -c 6789 "Hello, Mars."
 
