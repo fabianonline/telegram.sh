@@ -12,6 +12,8 @@ PARSE_MODE=""
 CODE_MODE=0
 CRON_MODE=0
 ACTION=""
+DISABLE_WEB_PAGE_PREVIEW=false
+DISABLE_NOTIFICATION=false
 
 URL="https://api.telegram.org/bot"
 FILE_URL="https://api.telegram.org/file/bot"
@@ -36,6 +38,10 @@ function help {
 	echo "    -r               Like -C, but if the first line starts with '+ ', it is specially formatted."
 	echo "    -l               Fetch known chat_ids."
 	echo "    -R               Receive a file sent via telegram."
+	echo "    -D               Sets disable_web_page_preview parameter to, well, disable the preview for links to webpages."
+	echo "                     Can also be set in config as TELEGRAM_DISABLE_WEB_PAGE_PREVIEW=true (see ENVIRONMENT)"
+	echo "    -N               Diables notifications on clients. Users will receive a notification with no sound."
+	echo "                     Can also be set in config as TELEGRAM_DISABLE_NOTIFICATION=true (see ENVIRONMENT)"
 	echo
 	echo "DEBUGGING OPTIONS are:"
 	echo "    -v               Display lots of more or less useful information."
@@ -160,7 +166,7 @@ function escapeMarkdown {
 	echo "$res"
 }
 
-while getopts "t:c:i:f:MHCrhlvjnR" opt; do
+while getopts "t:c:i:f:MHCrhlvjnRDN" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -203,6 +209,12 @@ while getopts "t:c:i:f:MHCrhlvjnR" opt; do
 		R)
 			ACTION="receive_file"
 			;;
+		D)
+			DISABLE_WEB_PAGE_PREVIEW=true
+			;;
+		N)
+			DISABLE_NOTIFICATION=true
+			;;
 		?|h)
 			help
 			;;
@@ -231,23 +243,20 @@ log "CHATS is now ${CHATS[*]}"
 log "TOKEN is now $TOKEN"
 log "CHATS is now ${CHATS[*]}"
 
-if [ -r ~/.telegram.sh ]; then
-	source ~/.telegram.sh
-	[ -z "$TOKEN" ] && TOKEN=$TELEGRAM_TOKEN
-	[ ${#CHATS[@]} -eq 0 ] && CHATS=($TELEGRAM_CHAT)
-fi
+log "Importing config file(s)..."
+
+[ -r /etc/telegram.sh.conf ] && source /etc/telegram.sh.conf
+[ -r ~/.telegram.sh ] && source ~/.telegram.sh
+
+[ -z "$TOKEN" ] && TOKEN=$TELEGRAM_TOKEN
+[ ${#CHATS[@]} -eq 0 ] && CHATS=($TELEGRAM_CHAT)
+[ -n "$TELEGRAM_DISABLE_WEB_PAGE_PREVIEW" ] && DISABLE_WEB_PAGE_PREVIEW="$TELEGRAM_DISABLE_WEB_PAGE_PREVIEW"
+[ -n "$TELEGRAM_DISABLE_NOTIFICATION" ] && DISABLE_NOTIFICATION="$TELEGRAM_DISABLE_NOTIFICATION"
 
 log "TOKEN is now $TOKEN"
 log "CHATS is now ${CHATS[*]}"
-
-if [ -r /etc/telegram.sh.conf ]; then
-	source /etc/telegram.sh.conf
-	[ -z "$TOKEN" ] && TOKEN=$TELEGRAM_TOKEN
-	[ ${#CHATS[@]} -eq 0 ] && CHATS=($TELEGRAM_CHAT)
-fi
-
-log "TOKEN is now $TOKEN"
-log "CHATS is now ${CHATS[*]}"
+log "DISABLE_WEB_PAGE_PREVIEW is now $DISABLE_WEB_PAGE_PREVIEW"
+log "DISABLE_NOTIFICATION is now $DISABLE_NOTIFICATION"
 
 if [ -z "$TOKEN" ]; then
 	echo "No bot token was given."
@@ -343,8 +352,11 @@ elif [ -n "$IMAGE_FILE" ]; then
 else
 	CURL_OPTIONS="$CURL_OPTIONS --form text=<-"
 	[ -n "$PARSE_MODE" ] && CURL_OPTIONS="$CURL_OPTIONS --form-string parse_mode=$PARSE_MODE"
+	[ "$DISABLE_WEB_PAGE_PREVIEW" = true ] && CURL_OPTIONS="$CURL_OPTIONS --form-string disable_web_page_preview=true"
 	METHOD="sendMessage"
 fi
+
+[ "$DISABLE_NOTIFICATION" = true ] && CURL_OPTIONS="$CURL_OPTIONS --form-string disable_notification=true"
 
 for id in "${CHATS[@]}"; do
 	CURL_OPTIONS="$CURL_OPTIONS --form-string chat_id=$id $URL$TOKEN/$METHOD"
