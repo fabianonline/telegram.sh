@@ -45,6 +45,11 @@ telegram -f results.txt "Here are the results."
 # Or an image, giving you a preview and stuff.
 telegram -i solar_system.png # We don't need to send a message if we're
 # sending a file.
+
+# Use environment variables to tell curl to use a proxy server:
+HTTPS_PROXY="socks5://127.0.0.1:1234" telegram "Hello, World."
+# Check the curl documentation for more info about supported proxy
+# protocols.
 ```
 
 ## Requirements
@@ -88,3 +93,12 @@ TELEGRAM_CHAT="12345678"
 ```
 
 Please be aware that you should keep your token a secret.
+
+You can also add permanent proxy settings in there by adding:
+
+```bash
+export HTTPS_PROXY="socks5://127.0.0.1:1234"
+```
+
+See the curl documentation for more information about which proxy protocols
+are supported.
