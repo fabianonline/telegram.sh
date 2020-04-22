@@ -21,7 +21,7 @@ CURL_OPTIONS="-s"
 
 HAS_JQ=false
 hash jq >/dev/null 2>&1 && HAS_JQ=true
-      
+
 
 function help {
 	version
@@ -58,7 +58,7 @@ function help {
 	echo "      3) via environment variables TELEGRAM_TOKEN and TELEGRAM_CHAT"
 	echo "      4) via options -t and -c"
 	echo "    Later methods overwrite earlier settings, so you can easily override global settings."
-	echo "    Please be aware that you shuld keep your telegram token secret!" 
+	echo "    Please be aware that you shuld keep your telegram token secret!"
 	echo
 	exit
 }
@@ -72,7 +72,7 @@ function list_chats {
 	log "$URL$TOKEN"
 	response=`curl $CURL_OPTIONS $URL$TOKEN/getUpdates`
 	log "$response"
-	
+
 	if [ "$HAS_JQ" = true ]; then
 		echo "These are the available chats that I can find right now. The ID is the number at the front."
 		echo "If there are no chats or the chat you are looking for isn't there, run this command again"
@@ -103,7 +103,7 @@ function receive_file {
 		echo "You need to have jq installed in order to be able to download files."
 		exit 1
 	fi
-	
+
 	result=`curl $CURL_OPTIONS $URL$TOKEN/getUpdates?allowed_updates=message`
 	log "$result"
 	# {"ok":true,"result":[
@@ -151,7 +151,7 @@ function check_file {
 		echo "The file $1 does not exist."
 		exit 1
 	fi
-	
+
 	size=$(stat -c%s "$1")
 	if (( size > 52428800 )); then
 		echo "File $1 is breaking the file size limit imposed on Telegram bots (currently 50MB)."
@@ -298,13 +298,13 @@ if [ $CRON_MODE -eq 1 ]; then
 			ONLY_COMMANDS=0
 		fi
 	done <<< "$TEXT"
-	
+
 	if [ "$ONLY_COMMANDS" -eq 1 ]; then
 		exit 0
 	fi
-	
+
 	TEXT='```'$'\n'$TEXT$'\n''```'
-	
+
 	#FIRST_LINE=1
 	#BLOCK_OPEN=0
 	#NEW_TEXT=""
@@ -341,7 +341,7 @@ fi
 
 if [ -n "$DOCUMENT_FILE" ]; then
 	check_file "$DOCUMENT_FILE"
-	
+
 	CURL_OPTIONS="$CURL_OPTIONS --form document=@$DOCUMENT_FILE"
 	CURL_OPTIONS="$CURL_OPTIONS --form caption=<-"
 	METHOD="sendDocument"
