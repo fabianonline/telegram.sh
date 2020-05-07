@@ -12,6 +12,7 @@ PARSE_MODE=""
 CODE_MODE=0
 CRON_MODE=0
 ACTION=""
+TITLE=""
 DISABLE_WEB_PAGE_PREVIEW=false
 DISABLE_NOTIFICATION=false
 
@@ -36,6 +37,7 @@ function help {
 	echo "    -H               Enables HTML processing at telegram."
 	echo "    -C               Sends text as monospace code. Useful when piping command outputs into this tool."
 	echo "    -r               Like -C, but if the first line starts with '+ ', it is specially formatted."
+	echo "    -T <TITLE>       Sets a title for the message. Printed in bold text if -M or -H is used."
 	echo "    -l               Fetch known chat_ids."
 	echo "    -R               Receive a file sent via telegram."
 	echo "    -D               Sets disable_web_page_preview parameter to, well, disable the preview for links to webpages."
@@ -167,7 +169,7 @@ function escapeMarkdown {
 	echo "$res"
 }
 
-while getopts "t:c:i:f:MHCrhlvjnRDN" opt; do
+while getopts "t:c:i:f:MHCrhlvjnRDNT:" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -215,6 +217,9 @@ while getopts "t:c:i:f:MHCrhlvjnRDN" opt; do
 			;;
 		N)
 			DISABLE_NOTIFICATION=true
+			;;
+		T)
+			TITLE="$OPTARG"
 			;;
 		?|h)
 			help
@@ -328,6 +333,16 @@ if [ $CRON_MODE -eq 1 ]; then
 fi
 
 log "Text: $TEXT"
+
+if [ -n "$TITLE" ]; then
+	if [ "$PARSE_MODE" == "HTML" ]; then
+		TEXT="<b>$TITLE</b>"$'\n\n'"$TEXT"
+	elif [ "$PARSE_MODE" == "Markdown" ]; then
+		TEXT="*$TITLE*"$'\n\n'"$TEXT"
+	else
+		TEXT="$TITLE"$'\n\n'"$TEXT"
+	fi
+fi
 
 if [ -z "$TEXT" ] && [ -z "$DOCUMENT_FILE" ] && [ -z "$IMAGE_FILE" ]; then
 	echo "Neither text nor image or other file given."
