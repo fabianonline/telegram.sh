@@ -41,6 +41,7 @@ function help {
 	echo "    -l               Fetch known chat_ids."
 	echo "    -R               Receive a file sent via telegram."
 	echo "    -G               Fetch sticker ID of sticker sent via telegram."
+	echo "    -s <ID/URL>      Sends sticker via provided sticker ID or an HTTP URL to get a .WEBP file "
 	echo "    -D               Sets disable_web_page_preview parameter to, well, disable the preview for links to webpages."
 	echo "                     Can also be set in config as TELEGRAM_DISABLE_WEB_PAGE_PREVIEW=true (see ENVIRONMENT)"
 	echo "                     This feature is only supported for text messages, not when sending files or images (-f, -i)."
@@ -198,7 +199,7 @@ function escapeMarkdown {
 	echo "$res"
 }
 
-while getopts "t:c:i:f:MHCrhlvjnRGDNT:" opt; do
+while getopts "t:c:i:f:MHCrhlvjnRGDNT:s:" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -252,6 +253,9 @@ while getopts "t:c:i:f:MHCrhlvjnRGDNT:" opt; do
 			;;
 		G)
 			ACTION="get_sticker"
+			;;
+		s)
+			STICKER="$OPTARG"
 			;;
 		?|h)
 			help
@@ -379,13 +383,21 @@ if [ -n "$TITLE" ]; then
 	fi
 fi
 
-if [ -z "$TEXT" ] && [ -z "$DOCUMENT_FILE" ] && [ -z "$IMAGE_FILE" ]; then
-	echo "Neither text nor image or other file given."
+if [ -z "$TEXT" ] && [ -z "$DOCUMENT_FILE" ] && [ -z "$IMAGE_FILE" ] && [ -z "$STICKER" ]; then
+	echo "Neither text nor image/sticker or other file given."
 	exit 1
 fi
 
 if [ -n "$DOCUMENT_FILE" ] && [ -n "$IMAGE_FILE" ]; then
 	echo "You can't send a file AND an image at the same time."
+	exit 1
+fi
+if [ -n "$IMAGE_FILE" ] && [ -n "$STICKER" ]; then
+	echo "You can't send an image AND a sticker at the same time."
+	exit 1
+fi
+if [ -n "$DOCUMENT_FILE" ] && [ -n "$STICKER" ]; then
+	echo "You can't send a file AND a sticker at the same time."
 	exit 1
 fi
 
@@ -401,6 +413,9 @@ elif [ -n "$IMAGE_FILE" ]; then
 	CURL_OPTIONS="$CURL_OPTIONS --form photo=@$IMAGE_FILE"
 	CURL_OPTIONS="$CURL_OPTIONS --form caption=<-"
 	METHOD="sendPhoto"
+elif [ -n "$STICKER" ]; then
+	CURL_OPTIONS="$CURL_OPTIONS --form sticker=$STICKER"
+	METHOD="sendSticker"
 else
 	CURL_OPTIONS="$CURL_OPTIONS --form text=<-"
 	[ "$DISABLE_WEB_PAGE_PREVIEW" = true ] && CURL_OPTIONS="$CURL_OPTIONS --form-string disable_web_page_preview=true"
