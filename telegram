@@ -40,6 +40,7 @@ function help {
 	echo "    -T <TITLE>       Sets a title for the message. Printed in bold text if -M or -H is used."
 	echo "    -l               Fetch known chat_ids."
 	echo "    -R               Receive a file sent via telegram."
+	echo "    -G               Fetch sticker ID of sticker sent via telegram."
 	echo "    -D               Sets disable_web_page_preview parameter to, well, disable the preview for links to webpages."
 	echo "                     Can also be set in config as TELEGRAM_DISABLE_WEB_PAGE_PREVIEW=true (see ENVIRONMENT)"
 	echo "                     This feature is only supported for text messages, not when sending files or images (-f, -i)."
@@ -144,6 +145,34 @@ function receive_file {
 	echo "File downloaded as $file_name"
 }
 
+function get_sticker {
+	response=`(curl $CURL_OPTIONS --form-string allowed_updates=message $URL$TOKEN/getUpdates)`
+	log "$response"
+	if [ "$HAS_JQ" = true ]; then
+		echo "This is the last sticker sent to me right now. The Sticker ID is the number in first line."
+		echo "If there is the sticker isn't there, run this command again"
+		echo "after sending the sticker to your bot via telegram."
+		echo
+		jq -r '.result[-1].message.sticker | "Sticker ID: \(.file_id) \n -Emoji: \(.emoji) \n -Set Name: \(.set_name) \n -Animated: \(.is_animated)"' 2>/dev/null <<< "$response" || {
+			echo "Could not parse reponse from Telegram."
+			echo "Response was: $response"
+			exit 1
+		}
+	else
+		echo "You don't have jq installed. I'm afraid I can't parse the JSON from telegram without it."
+		echo "So I'll have you do it. ;-)"
+		echo
+		echo "Please look for your sticker file_id in this output by yourself."
+		echo 'Look for something like "chat:{..."file_id":<Sticker_id> and verify that first_name, last_name and'
+		echo "username match your expected chat."
+		echo
+		echo "If there is the sticker isn't there, run this command again"
+		echo "after sending the sticker to your bot via telegram."
+		echo
+		echo $response
+	fi
+}
+
 function log {
 	[ "$DEBUG" = true ] && echo "DEBUG: $1"
 }
@@ -169,7 +198,7 @@ function escapeMarkdown {
 	echo "$res"
 }
 
-while getopts "t:c:i:f:MHCrhlvjnRDNT:" opt; do
+while getopts "t:c:i:f:MHCrhlvjnRGDNT:" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -220,6 +249,9 @@ while getopts "t:c:i:f:MHCrhlvjnRDNT:" opt; do
 			;;
 		T)
 			TITLE="$OPTARG"
+			;;
+		G)
+			ACTION="get_sticker"
 			;;
 		?|h)
 			help
@@ -283,7 +315,10 @@ if [ "$ACTION" = "receive_file" ]; then
 	receive_file
 	exit 0
 fi
-
+if [ "$ACTION" = "get_sticker" ]; then
+	get_sticker
+	exit 0
+fi
 shift $((OPTIND - 1))
 TEXT="$1"
 log "Text: $TEXT"
