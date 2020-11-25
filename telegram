@@ -45,6 +45,7 @@ function help {
 	echo "                     This feature is only supported for text messages, not when sending files or images (-f, -i)."
 	echo "    -N               Diables notifications on clients. Users will receive a notification with no sound."
 	echo "                     Can also be set in config as TELEGRAM_DISABLE_NOTIFICATION=true (see ENVIRONMENT)"
+	echo "    -m               Outputs the id and the text of the last received message."
 	echo
 	echo "DEBUGGING OPTIONS are:"
 	echo "    -v               Display lots of more or less useful information."
@@ -99,6 +100,26 @@ function list_chats {
 		echo $response
 	fi
 }
+
+function receive_message {
+	if [ "$HAS_JQ" = false ]; then
+		echo "You need to have jq installed in order to be able to receive messages."
+		exit 1
+	fi
+	
+	result=`curl $CURL_OPTIONS $URL$TOKEN/getUpdates?allowed_updates=message`
+	log "$result"
+	if [ "`jq '.result' <<< "$result"`" = "[]" ]; then
+		echo "No recent messages."
+		exit 1
+	fi
+	
+	id=`jq -r '.result[-1].message.message_id' <<< "$result"`
+	text=`jq -r '.result[-1].message.text' <<< "$result"`
+	echo "$id $text"
+	exit 0
+}
+		
 
 function receive_file {
 	if [ "$HAS_JQ" = false ]; then
@@ -169,7 +190,7 @@ function escapeMarkdown {
 	echo "$res"
 }
 
-while getopts "t:c:i:f:MHCrhlvjnRDNT:" opt; do
+while getopts "t:c:i:f:MHCrhlvjnRmDNT:" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -211,6 +232,9 @@ while getopts "t:c:i:f:MHCrhlvjnRDNT:" opt; do
 			;;
 		R)
 			ACTION="receive_file"
+			;;
+		m)
+			ACTION="receive_message"
 			;;
 		D)
 			DISABLE_WEB_PAGE_PREVIEW=true
@@ -281,6 +305,11 @@ fi
 
 if [ "$ACTION" = "receive_file" ]; then
 	receive_file
+	exit 0
+fi
+
+if [ "$ACTION" = "receive_message" ]; then
+	receive_message
 	exit 0
 fi
 
