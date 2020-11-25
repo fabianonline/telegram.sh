@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="0.3"
+VERSION="0.4"
 TOKEN=""
 CHATS=()
 DEBUG=false
@@ -45,7 +45,7 @@ function help {
 	echo "                     This feature is only supported for text messages, not when sending files or images (-f, -i)."
 	echo "    -N               Diables notifications on clients. Users will receive a notification with no sound."
 	echo "                     Can also be set in config as TELEGRAM_DISABLE_NOTIFICATION=true (see ENVIRONMENT)"
-	echo "    -m               Outputs the id and the text of the last received message."
+	echo "    -m               Outputs the last received message. Format is: <Message ID> <Sender ID> <Chat ID> <Text>"
 	echo
 	echo "DEBUGGING OPTIONS are:"
 	echo "    -v               Display lots of more or less useful information."
@@ -114,9 +114,7 @@ function receive_message {
 		exit 1
 	fi
 	
-	id=`jq -r '.result[-1].message.message_id' <<< "$result"`
-	text=`jq -r '.result[-1].message.text' <<< "$result"`
-	echo "$id $text"
+	jq -r '.result[-1].message | [(.message_id|tostring), (.from.id|tostring), (.chat.id|tostring), .text] | join(" ")' <<< "$result"
 	exit 0
 }
 		
