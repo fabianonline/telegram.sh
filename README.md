@@ -59,7 +59,7 @@ easily use this tool without this.
 
 ## Installation / configuration
 
-* Grab the latest `telegram` file from this repository and put it somewhere.
+* Grab the latest `telegram.sh` file from this repository and put it somewhere.
 * Create a bot at telegram:
   * Search for the user `@botfather` at telegram and start a chat with him.
   * Use the `/newbot` command to create a new bot. BotFather will give you a
@@ -91,6 +91,15 @@ The files should look like this:
 TELEGRAM_TOKEN="123456:AbcDefGhi-JlkMno"
 TELEGRAM_CHAT="12345678"
 ```
+
+Multiple chat ids can be defined in a config file as a bash array:
+
+```bash
+TELEGRAM_TOKEN="123456:AbcDefGhi-JlkMno"
+CHATS=(12345678, 23456789, 34567)
+```
+
+With such config command `telegram.sh "Hello world"` will deliver message to all listed chat ids.
 
 Please be aware that you should keep your token a secret.
 
