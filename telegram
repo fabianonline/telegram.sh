@@ -53,6 +53,8 @@ function help {
 	echo "    -T <TITLE>       Sets a title for the message. Printed in bold text if -M or -H is used."
 	echo "    -l               Fetch known chat_ids."
 	echo "    -R               Receive a file sent via telegram."
+	echo "    -G               Fetch sticker ID of sticker sent via telegram."
+	echo "    -s <ID/URL>      Sends sticker via provided sticker ID or an HTTP URL to get a .WEBP file "
 	echo "    -D               Sets disable_web_page_preview parameter to, well, disable the preview for links to webpages."
 	echo "                     Can also be set in config as TELEGRAM_DISABLE_WEB_PAGE_PREVIEW=true (see ENVIRONMENT)"
 	echo "                     This feature is only supported for text messages, not when sending files or images (-f, -i)."
@@ -177,6 +179,34 @@ function receive_file {
 	echo "File downloaded as $file_name"
 }
 
+function get_sticker {
+	response=`(curl $CURL_OPTIONS --form-string allowed_updates=message $URL$TOKEN/getUpdates)`
+	log "$response"
+	if [ "$HAS_JQ" = true ]; then
+		echo "This is the last sticker sent to me right now. The Sticker ID is the number in first line."
+		echo "If there is the sticker isn't there, run this command again"
+		echo "after sending the sticker to your bot via telegram."
+		echo
+		jq -r '.result[-1].message.sticker | "Sticker ID: \(.file_id) \n -Emoji: \(.emoji) \n -Set Name: \(.set_name) \n -Animated: \(.is_animated)"' 2>/dev/null <<< "$response" || {
+			echo "Could not parse reponse from Telegram."
+			echo "Response was: $response"
+			exit 1
+		}
+	else
+		echo "You don't have jq installed. I'm afraid I can't parse the JSON from telegram without it."
+		echo "So I'll have you do it. ;-)"
+		echo
+		echo "Please look for your sticker file_id in this output by yourself."
+		echo 'Look for something like "chat:{..."file_id":<Sticker_id> and verify that first_name, last_name and'
+		echo "username match your expected chat."
+		echo
+		echo "If there is the sticker isn't there, run this command again"
+		echo "after sending the sticker to your bot via telegram."
+		echo
+		echo $response
+	fi
+}
+
 function log {
 	[ "$DEBUG" = true ] && echo "DEBUG: $1"
 }
@@ -202,7 +232,7 @@ function escapeMarkdown {
 	echo "$res"
 }
 
-while getopts "t:c:i:f:MHCrhlvjnRmDNT:" opt; do
+while getopts "t:c:i:f:MHCrhlvjnRGDNT:s:" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -256,6 +286,12 @@ while getopts "t:c:i:f:MHCrhlvjnRmDNT:" opt; do
 			;;
 		T)
 			TITLE="$OPTARG"
+			;;
+		G)
+			ACTION="get_sticker"
+			;;
+		s)
+			STICKER="$OPTARG"
 			;;
 		?|h)
 			help
@@ -318,6 +354,11 @@ fi
 
 if [ "$ACTION" = "receive_file" ]; then
 	receive_file
+	exit 0
+fi
+
+if [ "$ACTION" = "get_sticker" ]; then
+	get_sticker
 	exit 0
 fi
 
@@ -386,13 +427,21 @@ if [ -n "$TITLE" ]; then
 	fi
 fi
 
-if [ -z "$TEXT" ] && [ -z "$DOCUMENT_FILE" ] && [ -z "$IMAGE_FILE" ]; then
-	echo "Neither text nor image or other file given."
+if [ -z "$TEXT" ] && [ -z "$DOCUMENT_FILE" ] && [ -z "$IMAGE_FILE" ] && [ -z "$STICKER" ]; then
+	echo "Neither text nor image/sticker or other file given."
 	exit 1
 fi
 
 if [ -n "$DOCUMENT_FILE" ] && [ -n "$IMAGE_FILE" ]; then
 	echo "You can't send a file AND an image at the same time."
+	exit 1
+fi
+if [ -n "$IMAGE_FILE" ] && [ -n "$STICKER" ]; then
+	echo "You can't send an image AND a sticker at the same time."
+	exit 1
+fi
+if [ -n "$DOCUMENT_FILE" ] && [ -n "$STICKER" ]; then
+	echo "You can't send a file AND a sticker at the same time."
 	exit 1
 fi
 
@@ -408,6 +457,9 @@ elif [ -n "$IMAGE_FILE" ]; then
 	CURL_OPTIONS="$CURL_OPTIONS --form photo=@\"$IMAGE_FILE\""
 	CURL_OPTIONS="$CURL_OPTIONS --form caption=<-"
 	METHOD="sendPhoto"
+elif [ -n "$STICKER" ]; then
+	CURL_OPTIONS="$CURL_OPTIONS --form sticker=$STICKER"
+	METHOD="sendSticker"
 else
 	CURL_OPTIONS="$CURL_OPTIONS --form text=<-"
 	[ "$DISABLE_WEB_PAGE_PREVIEW" = true ] && CURL_OPTIONS="$CURL_OPTIONS --form-string disable_web_page_preview=true"

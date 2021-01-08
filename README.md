@@ -46,6 +46,11 @@ telegram -f results.txt "Here are the results."
 telegram -i solar_system.png # We don't need to send a message if we're
 # sending a file.
 
+# Send a sticker using HTTP url to a .WEBM file.
+telegram -s https://github.com/TelegramBots/book/raw/master/src/docs/sticker-fred.webp
+# or from STICKER id obtained using telegram -G
+telegram -s CAACAgUAAxkBAAIEgV67xCFcbJys319zFYNRDrlq4_t9AAL2AAM9LkMPmn8nbpvwkRoZBA
+
 # Use environment variables to tell curl to use a proxy server:
 HTTPS_PROXY="socks5://127.0.0.1:1234" telegram "Hello, World."
 # Check the curl documentation for more info about supported proxy
