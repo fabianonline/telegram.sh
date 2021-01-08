@@ -97,6 +97,15 @@ TELEGRAM_TOKEN="123456:AbcDefGhi-JlkMno"
 TELEGRAM_CHAT="12345678"
 ```
 
+Multiple chat ids can be defined in a config file as a bash array:
+
+```bash
+TELEGRAM_TOKEN="123456:AbcDefGhi-JlkMno"
+CHATS=(12345678, 23456789, 34567)
+```
+
+With such config command `telegram.sh "Hello world"` will deliver message to all listed chat ids.
+
 Please be aware that you should keep your token a secret.
 
 You can also add permanent proxy settings in there by adding:
@@ -107,3 +116,21 @@ export HTTPS_PROXY="socks5://127.0.0.1:1234"
 
 See the curl documentation for more information about which proxy protocols
 are supported.
+
+## Changelog
+### Version 0.4
+* New option `-m` to receive the last received message. You could use this
+  e.g. to regularly poll the last message and react on commands.
+  Format of the response is `<Message ID> <Sender ID> <Chat ID> <Text>`.
+  You could use this feature like this:
+  ```
+  telegram -m | read message_id sender_id chat_id text
+  echo "MessageID: $message_id"
+  echo "Text:      $text"
+  ```
+
+### Contributors
+* abadroot
+* kgizdov 
+* rusalex
+* sergiks

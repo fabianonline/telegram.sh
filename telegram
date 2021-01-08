@@ -1,6 +1,19 @@
 #!/bin/bash
 
-VERSION="0.3"
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+VERSION="0.4"
 TOKEN=""
 CHATS=()
 DEBUG=false
@@ -47,6 +60,7 @@ function help {
 	echo "                     This feature is only supported for text messages, not when sending files or images (-f, -i)."
 	echo "    -N               Diables notifications on clients. Users will receive a notification with no sound."
 	echo "                     Can also be set in config as TELEGRAM_DISABLE_NOTIFICATION=true (see ENVIRONMENT)"
+	echo "    -m               Outputs the last received message. Format is: <Message ID> <Sender ID> <Chat ID> <Text>"
 	echo
 	echo "DEBUGGING OPTIONS are:"
 	echo "    -v               Display lots of more or less useful information."
@@ -59,8 +73,9 @@ function help {
 	echo "    TOKEN and CHAT_ID are required. You can set them in four different ways:"
 	echo "      1) globally in /etc/telegram.sh.conf"
 	echo "      2) user-local in ~/.telegram.sh"
-	echo "      3) via environment variables TELEGRAM_TOKEN and TELEGRAM_CHAT"
-	echo "      4) via options -t and -c"
+	echo "      3) user-local in ~/.telegram.sh.conf"
+	echo "      4) via environment variables TELEGRAM_TOKEN and TELEGRAM_CHAT"
+	echo "      5) via options -t and -c"
 	echo "    Later methods overwrite earlier settings, so you can easily override global settings."
 	echo "    Please be aware that you shuld keep your telegram token secret!"
 	echo
@@ -101,6 +116,24 @@ function list_chats {
 		echo $response
 	fi
 }
+
+function receive_message {
+	if [ "$HAS_JQ" = false ]; then
+		echo "You need to have jq installed in order to be able to receive messages."
+		exit 1
+	fi
+	
+	result=`curl $CURL_OPTIONS $URL$TOKEN/getUpdates?allowed_updates=message`
+	log "$result"
+	if [ "`jq '.result' <<< "$result"`" = "[]" ]; then
+		echo "No recent messages."
+		exit 1
+	fi
+	
+	jq -r '.result[-1].message | [(.message_id|tostring), (.from.id|tostring), (.chat.id|tostring), .text] | join(" ")' <<< "$result"
+	exit 0
+}
+		
 
 function receive_file {
 	if [ "$HAS_JQ" = false ]; then
@@ -242,6 +275,9 @@ while getopts "t:c:i:f:MHCrhlvjnRGDNT:s:" opt; do
 		R)
 			ACTION="receive_file"
 			;;
+		m)
+			ACTION="receive_message"
+			;;
 		D)
 			DISABLE_WEB_PAGE_PREVIEW=true
 			;;
@@ -289,6 +325,7 @@ log "Importing config file(s)..."
 
 [ -r /etc/telegram.sh.conf ] && source /etc/telegram.sh.conf
 [ -r ~/.telegram.sh ] && source ~/.telegram.sh
+[ -r ~/.telegram.sh.conf ] && source ~/.telegram.sh.conf
 
 [ -z "$TOKEN" ] && TOKEN=$TELEGRAM_TOKEN
 [ ${#CHATS[@]} -eq 0 ] && CHATS=($TELEGRAM_CHAT)
@@ -319,10 +356,17 @@ if [ "$ACTION" = "receive_file" ]; then
 	receive_file
 	exit 0
 fi
+
 if [ "$ACTION" = "get_sticker" ]; then
 	get_sticker
 	exit 0
 fi
+
+if [ "$ACTION" = "receive_message" ]; then
+	receive_message
+	exit 0
+fi
+
 shift $((OPTIND - 1))
 TEXT="$1"
 log "Text: $TEXT"
@@ -405,12 +449,12 @@ fi
 if [ -n "$DOCUMENT_FILE" ]; then
 	check_file "$DOCUMENT_FILE"
 
-	CURL_OPTIONS="$CURL_OPTIONS --form document=@$DOCUMENT_FILE"
+	CURL_OPTIONS="$CURL_OPTIONS --form document=@\"$DOCUMENT_FILE\""
 	CURL_OPTIONS="$CURL_OPTIONS --form caption=<-"
 	METHOD="sendDocument"
 elif [ -n "$IMAGE_FILE" ]; then
 	check_file "$IMAGE_FILE"
-	CURL_OPTIONS="$CURL_OPTIONS --form photo=@$IMAGE_FILE"
+	CURL_OPTIONS="$CURL_OPTIONS --form photo=@\"$IMAGE_FILE\""
 	CURL_OPTIONS="$CURL_OPTIONS --form caption=<-"
 	METHOD="sendPhoto"
 elif [ -n "$STICKER" ]; then
