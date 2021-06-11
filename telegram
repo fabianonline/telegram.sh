@@ -71,7 +71,7 @@ function help {
 	echo "    TOKEN and CHAT_ID are required. You can set them in four different ways:"
 	echo "      1) globally in /etc/telegram.sh.conf"
 	echo "      2) user-local in ~/.telegram.sh"
-	echo "      3) user-local in ~/.telegram.sh.conf"
+	echo "      3) user-local in ~/.telegram.sh.conf or `dirname $0`/.telegram.sh.conf"
 	echo "      4) via environment variables TELEGRAM_TOKEN and TELEGRAM_CHAT"
 	echo "      5) via options -t and -c"
 	echo "    Later methods overwrite earlier settings, so you can easily override global settings."
@@ -290,6 +290,7 @@ log "Importing config file(s)..."
 [ -r /etc/telegram.sh.conf ] && source /etc/telegram.sh.conf
 [ -r ~/.telegram.sh ] && source ~/.telegram.sh
 [ -r ~/.telegram.sh.conf ] && source ~/.telegram.sh.conf
+[ -r `dirname $0`/.telegram.sh.conf ] && source `dirname $0`/.telegram.sh.conf
 
 [ -z "$TOKEN" ] && TOKEN=$TELEGRAM_TOKEN
 [ ${#CHATS[@]} -eq 0 ] && CHATS=($TELEGRAM_CHAT)
