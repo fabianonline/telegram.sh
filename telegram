@@ -187,8 +187,8 @@ function check_file {
 		exit 1
 	fi
 
-	size=$(stat -c%s "$1")
-	if (( size > 52428800 )); then
+	size=$(du -m "$1" | cut -f1)
+	if (( size > 50 )); then
 		echo "File $1 is breaking the file size limit imposed on Telegram bots (currently 50MB)."
 		exit 1
 	fi
