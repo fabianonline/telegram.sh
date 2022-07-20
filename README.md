@@ -59,7 +59,8 @@ easily use this tool without this.
 
 ## Installation / configuration
 
-* Grab the latest `telegram` file from this repository and put it somewhere.
+* ~~Grab the latest `telegram` file from this repository and put it somewhere.~~
+* `brew install telegram.sh`
 * Create a bot at telegram:
   * Search for the user `@botfather` at telegram and start a chat with him.
   * Use the `/newbot` command to create a new bot. BotFather will give you a
