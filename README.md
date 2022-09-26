@@ -135,6 +135,9 @@ docker run -it --rm telegram
 
 ### Contributors
 * abadroot
+* hugows
 * kgizdov
+* KOPACb
+* rerime
 * rusalex
 * sergiks
