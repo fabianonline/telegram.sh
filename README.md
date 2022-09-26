@@ -46,6 +46,9 @@ telegram -f results.txt "Here are the results."
 telegram -i solar_system.png # We don't need to send a message if we're
 # sending a file.
 
+# Or a video.
+telegram -V video.mp4
+
 # Use environment variables to tell curl to use a proxy server:
 HTTPS_PROXY="socks5://127.0.0.1:1234" telegram "Hello, World."
 # Check the curl documentation for more info about supported proxy
@@ -136,3 +139,4 @@ docker run -it --rm telegram
 * kgizdov
 * rusalex
 * sergiks
+* dbarthe

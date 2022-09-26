@@ -21,6 +21,7 @@ DRY_RUN=false
 
 IMAGE_FILE=""
 DOCUMENT_FILE=""
+VIDEO_FILE=""
 PARSE_MODE=""
 CODE_MODE=0
 CRON_MODE=0
@@ -46,6 +47,7 @@ function help {
 	echo "    -c <CHAT_ID>     Chat to use as recipient. Can be given more than once. See ENVIRONMENT for more information."
 	echo "    -f <FILE>        Sends file."
 	echo "    -i <FILE>        Sends file as image. This will fail if the file isn't an actual image file."
+	echo "    -V <FILE>        Sends file as video."
 	echo "    -M               Enables Markdown processing at telegram."
 	echo "    -H               Enables HTML processing at telegram."
 	echo "    -C               Sends text as monospace code. Useful when piping command outputs into this tool."
@@ -207,7 +209,7 @@ function escapeMarkdown {
 	echo "$res"
 }
 
-while getopts "t:c:i:f:MHCrhlvjnRmDNT:" opt; do
+while getopts "t:c:i:f:V:MHCrhlvjnRmDNT:" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -220,6 +222,9 @@ while getopts "t:c:i:f:MHCrhlvjnRmDNT:" opt; do
 			;;
 		f)
 			DOCUMENT_FILE="$OPTARG"
+			;;
+		V)
+			VIDEO_FILE="$OPTARG"
 			;;
 		M)
 			PARSE_MODE="Markdown"
@@ -392,8 +397,8 @@ if [ -n "$TITLE" ]; then
 	fi
 fi
 
-if [ -z "$TEXT" ] && [ -z "$DOCUMENT_FILE" ] && [ -z "$IMAGE_FILE" ]; then
-	echo "Neither text nor image or other file given."
+if [ -z "$TEXT" ] && [ -z "$DOCUMENT_FILE" ] && [ -z "$VIDEO_FILE" ] && [ -z "$IMAGE_FILE" ] ; then
+	echo "Neither text nor image nor video or other file given."
 	exit 1
 fi
 
@@ -401,6 +406,15 @@ if [ -n "$DOCUMENT_FILE" ] && [ -n "$IMAGE_FILE" ]; then
 	echo "You can't send a file AND an image at the same time."
 	exit 1
 fi
+if [ -n "$DOCUMENT_FILE" ] && [ -n "$VIDEO_FILE" ]; then
+	echo "You can't send a file AND an video at the same time."
+	exit 1
+fi
+if [ -n "$IMAGE_FILE" ] && [ -n "$VIDEO_FILE" ]; then
+	echo "You can't send an image AND a video at the same time."
+	exit 1
+fi
+
 
 [ -n "$PARSE_MODE" ] && CURL_OPTIONS="$CURL_OPTIONS --form-string parse_mode=$PARSE_MODE"
 if [ -n "$DOCUMENT_FILE" ]; then
@@ -409,6 +423,12 @@ if [ -n "$DOCUMENT_FILE" ]; then
 	CURL_OPTIONS="$CURL_OPTIONS --form document=@\"$DOCUMENT_FILE\""
 	CURL_OPTIONS="$CURL_OPTIONS --form caption=<-"
 	METHOD="sendDocument"
+elif [ -n "$VIDEO_FILE" ]; then
+	check_file "$VIDEO_FILE"
+
+	CURL_OPTIONS="$CURL_OPTIONS --form video=@\"$VIDEO_FILE\""
+	CURL_OPTIONS="$CURL_OPTIONS --form caption=<-"
+	METHOD="sendVideo"
 elif [ -n "$IMAGE_FILE" ]; then
 	check_file "$IMAGE_FILE"
 	CURL_OPTIONS="$CURL_OPTIONS --form photo=@\"$IMAGE_FILE\""
