@@ -74,12 +74,14 @@ easily use this tool without this.
     `telegram -t <TOKEN> -c <CHAT ID> "Hello there."`
 
 Carrying the token and the chat id around can be quite cumbersome. You can
-define them in 4 different ways:
+define them in 6 different ways:
 
 1. In a file `/etc/telegram.sh.conf`.
 2. In a file `~/.telegram.sh`.
-3. In environment variables TELEGRAM_TOKEN and TELEGRAM_CHAT.
-4. As seen above as parameters.
+3. In a file `~/.telegram.sh.conf`.
+4. In a file in the same folder as this script, called `./telegram.sh.conf`.
+5. In environment variables TELEGRAM_TOKEN and TELEGRAM_CHAT.
+6. As seen above as parameters.
 
 Later variants overwrite earlier variants, so you could define token and
 chat in `/etc/telegram.sh.conf` and then overwrite the token with your own

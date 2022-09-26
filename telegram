@@ -68,12 +68,13 @@ function help {
 	echo "Message can be '-', in that case STDIN will be used."
 	echo
 	echo "ENVIRONMENT"
-	echo "    TOKEN and CHAT_ID are required. You can set them in four different ways:"
+	echo "    TOKEN and CHAT_ID are required. You can set them in six different ways:"
 	echo "      1) globally in /etc/telegram.sh.conf"
 	echo "      2) user-local in ~/.telegram.sh"
-	echo "      3) user-local in ~/.telegram.sh.conf or `dirname $0`/.telegram.sh.conf"
-	echo "      4) via environment variables TELEGRAM_TOKEN and TELEGRAM_CHAT"
-	echo "      5) via options -t and -c"
+	echo "      3) user-local in ~/.telegram.sh.conf"
+	echo "      4) relative to this script in `dirname "$0"`/.telegram.sh.conf"
+	echo "      5) via environment variables TELEGRAM_TOKEN and TELEGRAM_CHAT"
+	echo "      6) via options -t and -c"
 	echo "    Later methods overwrite earlier settings, so you can easily override global settings."
 	echo "    Please be aware that you shuld keep your telegram token secret!"
 	echo
