@@ -112,6 +112,13 @@ export HTTPS_PROXY="socks5://127.0.0.1:1234"
 See the curl documentation for more information about which proxy protocols
 are supported.
 
+## Docker image
+```bash
+docker build -t telegram:latest .
+docker run -it --rm telegram
+```
+
+
 ## Changelog
 ### Version 0.4
 * New option `-m` to receive the last received message. You could use this
@@ -126,6 +133,6 @@ are supported.
 
 ### Contributors
 * abadroot
-* kgizdov 
+* kgizdov
 * rusalex
 * sergiks
