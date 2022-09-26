@@ -125,6 +125,10 @@ docker run -it --rm telegram
 
 
 ## Changelog
+### Version 0.5
+* New option `-V`to send a video file.
+* Configuration can now also be set from a file called `.telegram.sh.conf`
+  in the same folder as this script.
 ### Version 0.4
 * New option `-m` to receive the last received message. You could use this
   e.g. to regularly poll the last message and react on commands.
@@ -138,10 +142,10 @@ docker run -it --rm telegram
 
 ### Contributors
 * abadroot
+* dbarthe
 * hugows
 * kgizdov
 * KOPACb
 * rerime
 * rusalex
 * sergiks
-* dbarthe
