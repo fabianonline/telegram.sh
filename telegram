@@ -211,7 +211,7 @@ function escapeMarkdown {
 	echo "$res"
 }
 
-while getopts "t:c:i:f:V:MHCrhlvjnRmDNTI:" opt; do
+while getopts "t:c:i:f:V:MHCrhlvjnRmDNIT:" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -271,7 +271,7 @@ while getopts "t:c:i:f:V:MHCrhlvjnRmDNTI:" opt; do
 			;;
 		I)
 			TELEGRAM_HOST=`echo "$URL" | sed 's,https://,,;s,/bot,,'`
-			TELEGRAM_IP=`dig @8.8.8.8 $TELEGRAM_HOST | grep "ANSWER SECTION" -A 2 | grep -v -e CNAME  -e "ANSWER SECTION" | cut -f5`
+			TELEGRAM_IP=`dig @8.8.8.8 $TELEGRAM_HOST +short`
 			CURL_OPTIONS="$CURL_OPTIONS --resolve ${URL%/bot}:$TELEGRAM_IP"
 			;;
 		?|h)
