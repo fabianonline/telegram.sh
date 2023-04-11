@@ -53,6 +53,7 @@ function help {
 	echo "    -C               Sends text as monospace code. Useful when piping command outputs into this tool."
 	echo "    -r               Like -C, but if the first line starts with '+ ', it is specially formatted."
 	echo "    -T <TITLE>       Sets a title for the message. Printed in bold text if -M or -H is used."
+	echo "    -I               Resolves the DNS of the host to be used to mitigate DNS issues."
 	echo "    -l               Fetch known chat_ids."
 	echo "    -R               Receive a file sent via telegram."
 	echo "    -D               Sets disable_web_page_preview parameter to, well, disable the preview for links to webpages."
@@ -210,7 +211,7 @@ function escapeMarkdown {
 	echo "$res"
 }
 
-while getopts "t:c:i:f:V:MHCrhlvjnRmDNT:" opt; do
+while getopts "t:c:i:f:V:MHCrhlvjnRmDNTI:" opt; do
 	case $opt in
 		t)
 			TOKEN="$OPTARG"
@@ -268,6 +269,11 @@ while getopts "t:c:i:f:V:MHCrhlvjnRmDNT:" opt; do
 		T)
 			TITLE="$OPTARG"
 			;;
+                I)
+                        TELEGRAM_IP=`dig @8.8.8.8 api.telegram.org | grep "ANSWER SECTION" -A 2 | grep -v -e CNAME  -e "ANSWER SECTION" | cut -f5`
+                        CURL_OPTIONS="$CURL_OPTIONS --resolve ${URL%/bot}:$TELEGRAM_IP"
+                        ;;
+
 		?|h)
 			help
 			;;

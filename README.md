@@ -1,3 +1,10 @@
+# Fork Changes
+As I use this script to send telegram alerts when parts of my infrastructure are unavailable it may coincide with the Pihole DNS server to be offline. When this happens there is no DNS resolution of the Telegram host and no message can be send. To alleviate this issue I have introduced a new flag (`-I`) which resolves the host by using the Google DNS `8.8.8.8` instead of using the usual DNS.
+
+---
+
+Original Readme:
+
 # telegram.sh
 
 ## What does it do?
